@@ -81,7 +81,8 @@ def dot_error(y_true, y_pred):
     return float(mean_dot_error), df, float(std_dot_error)
 
 
-path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
+# path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
+path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
 
 folder_names = os.listdir(path_to_folders)
 
@@ -133,7 +134,7 @@ dist = np_euclidean_distance(y_true, y_pred)
 #     plt.gca().invert_yaxis()
     
     
-d = c[c.num_calibration_dots == 13]
+d = c[c.num_calibration_dots == 9]
 d = d[d.subj_nr != '2023_03_13_13_27_40']
 
 # for name, i in d.groupby(['subj_nr','unique_dot']):
@@ -158,6 +159,7 @@ df = d.reset_index()
 user_predictions_px = np.array(df[['pred_x', 'pred_y']])
 ground_truths_px = np.array(df[['true_x','true_y']])        
 scale_cm_in_px = df.scrW_cm.astype(float)[0]/df.resX.astype(float)[0]  
+ 
 
 heatmap = makeHeat([df.resX[0], df.resY[0]], user_predictions_px[:,0], user_predictions_px[:,1])
 
@@ -166,13 +168,15 @@ f.set_size_inches(df.resX[0]/100., df.resY[0]/100.)
             
 ax.imshow(heatmap, cmap=cm.hot, extent=[0, df.resX[0], df.resY[0], 0], alpha = 0.5, aspect='equal')                   
 
-plt.scatter(user_predictions_px[:, 0], user_predictions_px[:, 1], c='r', s=10, alpha=0.5)
+# plt.scatter(user_predictions_px[:, 0], user_predictions_px[:, 1], c='r', s=10, alpha=0.5)
 plt.scatter(ground_truths_px[:, 0], ground_truths_px[:, 1], c='g', s=40, alpha=0.5)
             
-plt.axis('off')            
+# plt.axis('off')            
 
 median_pred_x = df.groupby('unique_dot').pred_x.median()
 median_pred_y = df.groupby('unique_dot').pred_y.median()
+std_pred_x = df.groupby('unique_dot').pred_x.std()
+std_pred_y = df.groupby('unique_dot').pred_y.std()
 true_x = df.groupby('unique_dot').true_x.mean()
 true_y = df.groupby('unique_dot').true_y.mean() 
 
@@ -185,21 +189,32 @@ plt.plot([median_pred_x, true_x], [median_pred_y, true_y], c='black')
 # Add text with error per dot
 err =  np.array(df.groupby('unique_dot').eucl_distance.median())
 err_cm = err * scale_cm_in_px
-for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(err_cm, 1)):
-    plt.text(x, y, e, fontsize=18)
+# for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(err_cm, 1)):
+#     plt.text(x, y, e, fontsize=18)
 
 # Standard deviation per each dot
 stdev_err =  np.array(df.groupby('unique_dot').eucl_distance.std())
 stdev_err_cm = stdev_err * scale_cm_in_px
 
 # convert to cm
-# mean_dot_error_cm = np.round(mean_dot_error * scale_cm_in_px, 1)
-# std_dot_error_cm = np.round(std_dot_error * scale_cm_in_px, 1)
+mean_dot_error_cm = np.round(err_cm.mean(), 1)
+std_dot_error_cm = np.round(stdev_err_cm.mean(), 1)
 # plt.title(f'Mean error: {mean_dot_error_cm}cm, Std: {np.round(std_dot_error_cm,1)}cm', fontsize=26)
 
+# calculate the distance between median of all samples (as plotted)
+dist = np_euclidean_distance(np.array([median_pred_x, median_pred_y]).T, np.array([true_x, true_y]).T)
+dist_cm = dist *  scale_cm_in_px
+std_pred_x_cm = std_pred_x * scale_cm_in_px
+std_pred_y_cm = std_pred_y * scale_cm_in_px
+plt.title(f'Mean error: {np.round(dist_cm.mean(),1)}cm, Std: ({np.round(std_pred_x_cm.mean(),1)}cm, {np.round(std_pred_y_cm.mean(),1)}cm)', fontsize=26)
 
 
+for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(dist_cm, 1)):
+    plt.text(x, y, e, fontsize=18)
 
+
+# Save plot
+plt.savefig('calibration9.jpg', dpi=100, pad_inches=0)
 
 
 
