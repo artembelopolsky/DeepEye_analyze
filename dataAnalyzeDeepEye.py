@@ -81,8 +81,8 @@ def dot_error(y_true, y_pred):
     return float(mean_dot_error), df, float(std_dot_error)
 
 
-# path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
-path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
+path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
+# path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
 
 folder_names = os.listdir(path_to_folders)
 
@@ -134,8 +134,9 @@ dist = np_euclidean_distance(y_true, y_pred)
 #     plt.gca().invert_yaxis()
     
     
-d = c[c.num_calibration_dots == 9]
+d = c[c.num_calibration_dots == 13]
 d = d[d.subj_nr != '2023_03_13_13_27_40']
+d = d[d.subj_nr != '2023_03_27_11_43_30']
 
 # for name, i in d.groupby(['subj_nr','unique_dot']):
 #     median_pred_x = i.pred_x.median()
@@ -214,7 +215,7 @@ for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(dist_cm, 1)):
 
 
 # Save plot
-plt.savefig('calibration9.jpg', dpi=100, pad_inches=0)
+plt.savefig('calibration13.jpg', dpi=100, pad_inches=0)
 
 
 
