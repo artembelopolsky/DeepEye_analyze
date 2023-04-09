@@ -81,13 +81,8 @@ def dot_error(y_true, y_pred):
     return float(mean_dot_error), df, float(std_dot_error)
 
 
-<<<<<<< Updated upstream
-# path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
-path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
-=======
-path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/lab_pilot'
+path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
 # path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
->>>>>>> Stashed changes
 
 folder_names = os.listdir(path_to_folders)
 
@@ -107,18 +102,37 @@ for fn in folder_names:
     
     df_list = []
     count_datasets = 0
+    last_numCalibDots = []
     for i in range(len(idx_dup)):
         if i < len(idx_dup) - 1:
             a = df.iloc[idx_dup[i]+1:idx_dup[i+1]]
             a = a.apply(pd.to_numeric, errors='ignore') # when header is written twice, some floats are str, fix this 
-            a['num_calibration_dots'] = a.unique_dot.max() + 1
-            a['dataset_num'] = count_datasets
+            a['dataset_num'] = count_datasets          
+       
+           
+            
+            if a.numCalibDots.iloc[0] == 25:
+                print(f'last: {last_numCalibDots[-1]}')
+                if last_numCalibDots[-1] == 9:
+                    a['condition'] = '25_9'
+                elif last_numCalibDots[-1] == 13:
+                    a['condition'] = '25_13'
+                
+            else:
+                a['condition'] = a.numCalibDots.astype(str)
+                
+            last_numCalibDots.append(a.numCalibDots.iloc[-1]) # log last value
+                
                    
             df_list.append(a)
             count_datasets += 1
     
     
     # if there are more than 4 datasets, I should remove the recalibrated ones
+    last_numCalibDots = pd.Series(last_numCalibDots)
+    idx_good_datasets = last_numCalibDots.loc[last_numCalibDots.shift(-1) != last_numCalibDots]
+    df_list = [df_list[i] for i in list(idx_good_datasets.index)]
+    
     b = pd.concat(df_list)
     b['subj_nr'] = fn
     
@@ -126,9 +140,9 @@ for fn in folder_names:
 
 c = pd.concat(pp_list)
 
-y_true = np.array(a[['true_x','true_y']])
-y_pred = np.zeros(y_true.shape)
-dist = np_euclidean_distance(y_true, y_pred)
+# y_true = np.array(a[['x','y']])
+# y_pred = np.zeros(y_true.shape)
+# dist = np_euclidean_distance(y_true, y_pred)
 
 
 
@@ -137,11 +151,24 @@ dist = np_euclidean_distance(y_true, y_pred)
 #     plt.scatter(np.array(i.pred_x), np.array(i.pred_y))
 #     plt.scatter(i.true_x, i.true_y)
 #     plt.gca().invert_yaxis()
-    
-    
-d = c[c.num_calibration_dots == 13]
-d = d[d.subj_nr != '2023_03_13_13_27_40']
-d = d[d.subj_nr != '2023_03_27_11_43_30']
+
+
+target_resX = 1280.0
+target_resY = 800.0    
+
+# To do: 
+# How many attempts
+
+
+# d = c[c.numCalibDots == 9]
+d = c[c.condition == '13']
+# d = d[d.subj_nr == '2023_04_07_13_59_57']
+# d = d[d.subj_nr == '2023_04_07_13_45_47']
+
+
+
+
+
 
 # for name, i in d.groupby(['subj_nr','unique_dot']):
 #     median_pred_x = i.pred_x.median()
@@ -154,7 +181,7 @@ d = d[d.subj_nr != '2023_03_27_11_43_30']
     # plt.scatter(true_x, true_y)
     # plt.gca().invert_yaxis()
     
-d2 = d.groupby(['subj_nr', 'unique_dot'], as_index=False).median()
+# d2 = d.groupby(['subj_nr', 'dotNr'], as_index=False).median()
 
 
 # plt.scatter(d.true_x, d.true_y)
@@ -162,50 +189,63 @@ d2 = d.groupby(['subj_nr', 'unique_dot'], as_index=False).median()
 
 df = d.reset_index()
 
-user_predictions_px = np.array(df[['pred_x', 'pred_y']])
-ground_truths_px = np.array(df[['true_x','true_y']])        
-scale_cm_in_px = df.scrW_cm.astype(float)[0]/df.resX.astype(float)[0]  
- 
+user_predictions_px = np.array(df[['user_pred_px_x', 'user_pred_px_y']])
+df['user_pred_px_x_scaled'] = df.user_pred_px_x/df.resX * target_resX
+df['user_pred_px_y_scaled'] = df.user_pred_px_y/df.resY * target_resY
+ground_truths_px = np.array(df[['x','y']])
+df['x_scaled'] = df.x/df.resX * target_resX
+df['y_scaled'] = df.y/df.resY * target_resY
 
-heatmap = makeHeat([df.resX[0], df.resY[0]], user_predictions_px[:,0], user_predictions_px[:,1])
+
+df['scale_cm_in_px'] = df.scrW_cm.astype(float)/df.resX.astype(float)
+scale_cm_in_px = df.scale_cm_in_px.mean() # average scaling factor
+# scale_cm_in_px = df.scrW_cm.astype(float)[0]/df.resX.astype(float)[0]  
+
+# Get indices of unique dot positions (unique rows)
+u, indices = np.unique(np.array([df.x_scaled, df.y_scaled]).T, axis=0, return_inverse=True)
+df['unique_dot'] = indices
+
+
+# heatmap = makeHeat([target_resX, target_resY], user_predictions_px[:,0], user_predictions_px[:,1])
+heatmap = makeHeat([target_resX, target_resY], np.array(df.user_pred_px_x_scaled), np.array(df.user_pred_px_y_scaled))
 
 f, ax = plt.subplots()
-f.set_size_inches(df.resX[0]/100., df.resY[0]/100.)            
+f.set_size_inches(target_resX/100., target_resY/100.)            
             
-ax.imshow(heatmap, cmap=cm.hot, extent=[0, df.resX[0], df.resY[0], 0], alpha = 0.5, aspect='equal')                   
+ax.imshow(heatmap, cmap=cm.hot, extent=[0, target_resX, target_resY, 0], alpha = 0.5, aspect='equal')                   
 
 # plt.scatter(user_predictions_px[:, 0], user_predictions_px[:, 1], c='r', s=10, alpha=0.5)
-plt.scatter(ground_truths_px[:, 0], ground_truths_px[:, 1], c='g', s=40, alpha=0.5)
+plt.scatter(df.x_scaled, df.y_scaled, c='g', s=40, alpha=0.5)
             
 # plt.axis('off')            
 
-median_pred_x = df.groupby('unique_dot').pred_x.median()
-median_pred_y = df.groupby('unique_dot').pred_y.median()
-std_pred_x = df.groupby('unique_dot').pred_x.std()
-std_pred_y = df.groupby('unique_dot').pred_y.std()
-true_x = df.groupby('unique_dot').true_x.mean()
-true_y = df.groupby('unique_dot').true_y.mean() 
+median_pred_x = df.groupby('unique_dot').user_pred_px_x_scaled.median()
+median_pred_y = df.groupby('unique_dot').user_pred_px_y_scaled.median()
+std_pred_x = df.groupby('unique_dot').user_pred_px_x_scaled.std()
+std_pred_y = df.groupby('unique_dot').user_pred_px_y_scaled.std()
+true_x = df.groupby('unique_dot').x_scaled.mean()
+true_y = df.groupby('unique_dot').y_scaled.mean() 
 
 
- # Plot median errors, lines
+# Plot median errors, lines
 plt.scatter(median_pred_x, median_pred_y, c='b', s=40)
 plt.plot([median_pred_x, true_x], [median_pred_y, true_y], c='black')
 
 
-# Add text with error per dot
-err =  np.array(df.groupby('unique_dot').eucl_distance.median())
-err_cm = err * scale_cm_in_px
-# for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(err_cm, 1)):
-#     plt.text(x, y, e, fontsize=18)
+# # Add text with error per dot
+# err =  np.array(df.groupby('dotNr').eucl_distance.median())
+# err_cm = err * scale_cm_in_px
+# # for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(err_cm, 1)):
+# #     plt.text(x, y, e, fontsize=18)
 
-# Standard deviation per each dot
-stdev_err =  np.array(df.groupby('unique_dot').eucl_distance.std())
-stdev_err_cm = stdev_err * scale_cm_in_px
+# # Standard deviation per each dot
+# stdev_err =  np.array(df.groupby('dotNr').eucl_distance.std())
+# stdev_err_cm = stdev_err * scale_cm_in_px
 
-# convert to cm
-mean_dot_error_cm = np.round(err_cm.mean(), 1)
-std_dot_error_cm = np.round(stdev_err_cm.mean(), 1)
-# plt.title(f'Mean error: {mean_dot_error_cm}cm, Std: {np.round(std_dot_error_cm,1)}cm', fontsize=26)
+# # convert to cm
+# mean_dot_error_cm = np.round(err_cm.mean(), 1)
+# std_dot_error_cm = np.round(stdev_err_cm.mean(), 1)
+# # plt.title(f'Mean error: {mean_dot_error_cm}cm, Std: {np.round(std_dot_error_cm,1)}cm', fontsize=26)
 
 # calculate the distance between median of all samples (as plotted)
 dist = np_euclidean_distance(np.array([median_pred_x, median_pred_y]).T, np.array([true_x, true_y]).T)
