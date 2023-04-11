@@ -81,8 +81,8 @@ def dot_error(y_true, y_pred):
     return float(mean_dot_error), df, float(std_dot_error)
 
 
-# path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
-path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+# path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
 
 # get all folder names
 folder_names = os.listdir(path_to_folders)
@@ -235,6 +235,9 @@ for name, df in df_all.groupby('condition'):
 """
 Plotting mean E.d. and SD per condition
 """
+
+fig, ax = plt.subplots(nrows=2, ncols=4)
+count_plots = 0
 for name, i in df_all.groupby('condition'):
     
     # Get median per each unique dot, separately per subject and condition
@@ -250,14 +253,29 @@ for name, i in df_all.groupby('condition'):
     print(agg_SD)
     
     # Plot euclidean distances per subject
-    plt.figure()
-    plt.title(f'Condition:{i.condition.iloc[0]}\nEuclidean distances per subject')
-    plt.scatter(np.ones(agg_Ed.eucl_dist_cm_orig.size),agg_Ed.eucl_dist_cm_orig)
-    plt.scatter(1,agg_Ed.eucl_dist_cm_orig.mean())
+    # plt.figure()
+    # plt.title(f'Condition:{i.condition.iloc[0]}\nEuclidean distances per subject')
+    # plt.scatter(np.ones(agg_Ed.eucl_dist_cm_orig.size),agg_Ed.eucl_dist_cm_orig)
+    # plt.scatter(1,agg_Ed.eucl_dist_cm_orig.mean())
+    
+    ax[0, count_plots].title.set_text(f'Condition:{i.condition.iloc[0]}\nEuclidean distances per subject')
+    ax[0, count_plots].scatter(np.ones(agg_Ed.eucl_dist_cm_orig.size),agg_Ed.eucl_dist_cm_orig)
+    ax[0, count_plots].scatter(1,agg_Ed.eucl_dist_cm_orig.mean())
     
     # Plot SD per subject
-    plt.figure()
-    plt.title(f'Condition:{i.condition.iloc[0]}\nSD of Euclidean distances per subject')
-    plt.scatter(np.ones(agg_SD.eucl_dist_cm_orig.size),agg_SD.eucl_dist_cm_orig)
-    plt.scatter(1,agg_SD.eucl_dist_cm_orig.mean())
+    # plt.figure()
+    # plt.title(f'Condition:{i.condition.iloc[0]}\nSD of Euclidean distances per subject')
+    # plt.scatter(np.ones(agg_SD.eucl_dist_cm_orig.size),agg_SD.eucl_dist_cm_orig)
+    # plt.scatter(1,agg_SD.eucl_dist_cm_orig.mean())
+    ax[1, count_plots].title.set_text(f'Condition:{i.condition.iloc[0]}\nSD of Euclidean distances per subject')
+    ax[1, count_plots].scatter(np.ones(agg_SD.eucl_dist_cm_orig.size),agg_SD.eucl_dist_cm_orig)
+    ax[1, count_plots].scatter(1,agg_SD.eucl_dist_cm_orig.mean())
+    
+    count_plots += 1
+    
+
+    
+# Save plot
+fig.tight_layout()
+fig.savefig('summary.jpg', dpi=100, pad_inches=0)
 
