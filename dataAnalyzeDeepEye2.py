@@ -238,11 +238,12 @@ Plotting mean E.d. and SD per condition
 for name, i in df_all.groupby('condition'):
     
     # Get median per each unique dot, separately per subject and condition
-    summary_df = i.groupby(['subj_nr', 'condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].median().reset_index()
+    summary_df_ed = i.groupby(['subj_nr', 'condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].median().reset_index()
+    summary_df_std = i.groupby(['subj_nr', 'condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].std().reset_index()
     
     # Aggregate over dots (mean E.d. and SD E.d.)
-    agg_Ed = summary_df.groupby(['subj_nr', 'condition'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
-    agg_SD = summary_df.groupby(['subj_nr', 'condition'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].std().reset_index()
+    agg_Ed = summary_df_ed.groupby(['subj_nr', 'condition'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
+    agg_SD = summary_df_std.groupby(['subj_nr', 'condition'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
     print('\nMean Euclidean distance:')
     print(agg_Ed)
     print('\nStandard deviation of Euclidean distances:')
