@@ -81,25 +81,26 @@ def dot_error(y_true, y_pred):
     return float(mean_dot_error), df, float(std_dot_error)
 
 
-path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
-# path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
+# path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
 
+# get all folder names
 folder_names = os.listdir(path_to_folders)
 
 pp_list = []
-
 for fn in folder_names:
-    path = os.path.join(path_to_folders, fn, fn+'_test_all.csv')
-    
-    
+    path = os.path.join(path_to_folders, fn, fn+'_test_all.csv')       
         
     df = pd.read_csv(path)
     
+    # Find the headers via duplicates and use it to split into datasets
+    # Make indices of datasets
     mask_dup = df.duplicated(keep=False)
     idx_dup = df.index[mask_dup == True].tolist()
-    idx_dup[:0] = [-1]
-    idx_dup.extend([df.shape[0]])
+    idx_dup[:0] = [-1] # add lower index
+    idx_dup.extend([df.shape[0]]) # add upper index
     
+    # Use indices to parse datasets
     df_list = []
     count_datasets = 0
     last_numCalibDots = []
@@ -110,10 +111,9 @@ for fn in folder_names:
             a['dataset_num'] = count_datasets
             a['eucl_dist_px_orig'] = np_euclidean_distance(np.array(a[['x','y']]), np.array(a[['user_pred_px_x','user_pred_px_y']]))
             scale_cm_in_px = a.scrW_cm/a.resX
-            a['eucl_dist_cm_orig'] = a.eucl_dist_px_orig * scale_cm_in_px
-       
+            a['eucl_dist_cm_orig'] = a.eucl_dist_px_orig * scale_cm_in_px      
            
-            
+            # Label 25-dot conditions based on preceeding dataset
             if a.numCalibDots.iloc[0] == 25:
                 print(f'last: {last_numCalibDots[-1]}')
                 if last_numCalibDots[-1] == 9:
@@ -124,151 +124,139 @@ for fn in folder_names:
             else:
                 a['condition'] = a.numCalibDots.astype(str)
                 
-            last_numCalibDots.append(a.numCalibDots.iloc[-1]) # log last value
-                
-                   
+            last_numCalibDots.append(a.numCalibDots.iloc[-1]) # log last value                
+            
+            # Accumulate all dataset per subject
             df_list.append(a)
             count_datasets += 1
     
     
-    # if there are more than 4 datasets, I should remove the recalibrated ones
+    # if there are more than 4 datasets, remove the recalibrated ones, pick the last one
     last_numCalibDots = pd.Series(last_numCalibDots)
-    idx_good_datasets = last_numCalibDots.loc[last_numCalibDots.shift(-1) != last_numCalibDots]
-    df_list = [df_list[i] for i in list(idx_good_datasets.index)]
+    idx_good_datasets = last_numCalibDots.loc[last_numCalibDots.shift(-1) != last_numCalibDots] # shift dataset by one row and get indices
+    df_list = [df_list[i] for i in list(idx_good_datasets.index)] # pick only the 4 datasets
+    assert(len(df_list) == 4)
     
+    # Concatenate all datasets per subject
     b = pd.concat(df_list)
-    b['subj_nr'] = fn
     
+    # Add a subj_nr column
+    b['subj_nr'] = fn    
+    
+    # Accumulate datasets across subjects
     pp_list.append(b)
 
-c = pd.concat(pp_list)
-
-# y_true = np.array(a[['x','y']])
-# y_pred = np.zeros(y_true.shape)
-# dist = np_euclidean_distance(y_true, y_pred)
+# Concatenate all subjects in one df
+df_all = pd.concat(pp_list)
 
 
 
-# for name, i in b.groupby('dataset_num'):
-#     plt.figure()
-#     plt.scatter(np.array(i.pred_x), np.array(i.pred_y))
-#     plt.scatter(i.true_x, i.true_y)
-#     plt.gca().invert_yaxis()
-
-
+# Every display resolution is scaled to this one since all dots are drawn in % display size in px
 target_resX = 1280.0
 target_resY = 800.0    
 
-# To do: 
-# Plot separately 9, 13, 25_9, 25_13
-# Print summary statistics per participant
+# To do:
 # How many attempts
 # Filter out failed last attemtps
 
+df_all = df_all.reset_index()
 
-# d = c[c.numCalibDots == 9]
-d = c[c.condition == '13']
-# d = d[d.subj_nr == '2023_04_07_13_59_57']
-# d = d[d.subj_nr == '2023_04_07_13_45_47']
+# df_all = df_all[df_all.numCalibDots == 9]
+# df_all = df_all[df_all.subj_nr == '2023_04_07_13_59_57']
+# df_all = df_all[df_all.subj_nr == '2023_04_07_13_45_47']
 
+# user_predictions_px = np.array(df_all[['user_pred_px_x', 'user_pred_px_y']])
+df_all['user_pred_px_x_scaled'] = df_all.user_pred_px_x/df_all.resX * target_resX
+df_all['user_pred_px_y_scaled'] = df_all.user_pred_px_y/df_all.resY * target_resY
+# ground_truths_px = np.array(df_all[['x','y']])
+df_all['x_scaled'] = df_all.x/df_all.resX * target_resX
+df_all['y_scaled'] = df_all.y/df_all.resY * target_resY
 
-
-
-
-
-# for name, i in d.groupby(['subj_nr','unique_dot']):
-#     median_pred_x = i.pred_x.median()
-#     median_pred_y = i.pred_y.median()
-#     true_x = i.true_x.mean()
-#     true_y = i.true_y.mean()    
-    
-    # plt.figure()
-    # plt.scatter(np.array(median_pred_x), np.array(median_pred_y))
-    # plt.scatter(true_x, true_y)
-    # plt.gca().invert_yaxis()
-    
-# d2 = d.groupby(['subj_nr', 'dotNr'], as_index=False).median()
-
-
-# plt.scatter(d.true_x, d.true_y)
-# plt.scatter(d.pred_x, d.pred_y)
-
-df = d.reset_index()
-
-user_predictions_px = np.array(df[['user_pred_px_x', 'user_pred_px_y']])
-df['user_pred_px_x_scaled'] = df.user_pred_px_x/df.resX * target_resX
-df['user_pred_px_y_scaled'] = df.user_pred_px_y/df.resY * target_resY
-ground_truths_px = np.array(df[['x','y']])
-df['x_scaled'] = df.x/df.resX * target_resX
-df['y_scaled'] = df.y/df.resY * target_resY
-
-
-df['scale_cm_in_px'] = df.scrW_cm.astype(float)/df.resX.astype(float)
-scale_cm_in_px = df.scale_cm_in_px.mean() # average scaling factor
-# scale_cm_in_px = df.scrW_cm.astype(float)[0]/df.resX.astype(float)[0]  
+df_all['scale_cm_in_px'] = df_all.scrW_cm.astype(float)/df_all.resX.astype(float)
+scale_cm_in_px = df_all.scale_cm_in_px.mean() # average scaling factor
+# scale_cm_in_px = df_all.scrW_cm.astype(float)[0]/df_all.resX.astype(float)[0]  
 
 # Get indices of unique dot positions (unique rows)
-u, indices = np.unique(np.array([df.x_scaled, df.y_scaled]).T, axis=0, return_inverse=True)
-df['unique_dot'] = indices
+u, indices = np.unique(np.array([df_all.x_scaled, df_all.y_scaled]).T, axis=0, return_inverse=True)
+df_all['unique_dot'] = indices
 
 
-# heatmap = makeHeat([target_resX, target_resY], user_predictions_px[:,0], user_predictions_px[:,1])
-heatmap = makeHeat([target_resX, target_resY], np.array(df.user_pred_px_x_scaled), np.array(df.user_pred_px_y_scaled))
 
-f, ax = plt.subplots()
-f.set_size_inches(target_resX/100., target_resY/100.)            
-            
-ax.imshow(heatmap, cmap=cm.hot, extent=[0, target_resX, target_resY, 0], alpha = 0.5, aspect='equal')                   
+""" 
+Plotting
 
-# plt.scatter(user_predictions_px[:, 0], user_predictions_px[:, 1], c='r', s=10, alpha=0.5)
-plt.scatter(df.x_scaled, df.y_scaled, c='g', s=40, alpha=0.5)
-            
-# plt.axis('off')            
+"""
 
-median_pred_x = df.groupby('unique_dot').user_pred_px_x_scaled.median()
-median_pred_y = df.groupby('unique_dot').user_pred_px_y_scaled.median()
-std_pred_x = df.groupby('unique_dot').user_pred_px_x_scaled.std()
-std_pred_y = df.groupby('unique_dot').user_pred_px_y_scaled.std()
-true_x = df.groupby('unique_dot').x_scaled.mean()
-true_y = df.groupby('unique_dot').y_scaled.mean() 
+# Iterate per condition
+for name, df in df_all.groupby('condition'):
 
 
-# Plot median errors, lines
-plt.scatter(median_pred_x, median_pred_y, c='b', s=40)
-plt.plot([median_pred_x, true_x], [median_pred_y, true_y], c='black')
+    heatmap = makeHeat([target_resX, target_resY], np.array(df.user_pred_px_x_scaled), np.array(df.user_pred_px_y_scaled))
+    
+    f, ax = plt.subplots()
+    f.set_size_inches(target_resX/100., target_resY/100.)            
+                
+    ax.imshow(heatmap, cmap=cm.hot, extent=[0, target_resX, target_resY, 0], alpha = 0.5, aspect='equal')                   
+    
+    plt.scatter(df.user_pred_px_x_scaled, df.user_pred_px_y_scaled, c='r', s=10, alpha=0.5)
+    plt.scatter(df.x_scaled, df.y_scaled, c='g', s=40, alpha=0.5)
+                
+    # plt.axis('off')            
+    
+    median_pred_x = df.groupby('unique_dot').user_pred_px_x_scaled.median()
+    median_pred_y = df.groupby('unique_dot').user_pred_px_y_scaled.median()
+    std_pred_x = df.groupby('unique_dot').user_pred_px_x_scaled.std()
+    std_pred_y = df.groupby('unique_dot').user_pred_px_y_scaled.std()
+    true_x = df.groupby('unique_dot').x_scaled.mean()
+    true_y = df.groupby('unique_dot').y_scaled.mean() 
+    
+    
+    # Plot median errors, lines
+    plt.scatter(median_pred_x, median_pred_y, c='b', s=40)
+    plt.plot([median_pred_x, true_x], [median_pred_y, true_y], c='black')
+    
+    
+    # calculate the distance between median of all samples (as plotted)
+    dist = np_euclidean_distance(np.array([median_pred_x, median_pred_y]).T, np.array([true_x, true_y]).T)
+    dist_cm = dist *  scale_cm_in_px
+    std_pred_x_cm = std_pred_x * scale_cm_in_px
+    std_pred_y_cm = std_pred_y * scale_cm_in_px
+    plt.title(f'Condition:{df.condition.iloc[0]}\n Mean error: {np.round(dist_cm.mean(),1)}cm, Std (x,y): ({np.round(std_pred_x_cm.mean(),1)}cm, {np.round(std_pred_y_cm.mean(),1)}cm)', fontsize=26)
+    
+    
+    for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(dist_cm, 1)):
+        plt.text(x, y, e, fontsize=18)
 
 
-# # Add text with error per dot
-# err =  np.array(df.groupby('dotNr').eucl_distance.median())
-# err_cm = err * scale_cm_in_px
-# # for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(err_cm, 1)):
-# #     plt.text(x, y, e, fontsize=18)
-
-# # Standard deviation per each dot
-# stdev_err =  np.array(df.groupby('dotNr').eucl_distance.std())
-# stdev_err_cm = stdev_err * scale_cm_in_px
-
-# # convert to cm
-# mean_dot_error_cm = np.round(err_cm.mean(), 1)
-# std_dot_error_cm = np.round(stdev_err_cm.mean(), 1)
-# # plt.title(f'Mean error: {mean_dot_error_cm}cm, Std: {np.round(std_dot_error_cm,1)}cm', fontsize=26)
-
-# calculate the distance between median of all samples (as plotted)
-dist = np_euclidean_distance(np.array([median_pred_x, median_pred_y]).T, np.array([true_x, true_y]).T)
-dist_cm = dist *  scale_cm_in_px
-std_pred_x_cm = std_pred_x * scale_cm_in_px
-std_pred_y_cm = std_pred_y * scale_cm_in_px
-plt.title(f'Mean error: {np.round(dist_cm.mean(),1)}cm, Std: ({np.round(std_pred_x_cm.mean(),1)}cm, {np.round(std_pred_y_cm.mean(),1)}cm)', fontsize=26)
+    # Save plot
+    # plt.savefig(f'calibration{df.condition.iloc[0]}.jpg', dpi=100, pad_inches=0)
 
 
-for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(dist_cm, 1)):
-    plt.text(x, y, e, fontsize=18)
+"""
+Plotting mean E.d. and SD per condition
+"""
+for name, i in df_all.groupby('condition'):
+    
+    # Get median per each unique dot, separately per subject and condition
+    summary_df = i.groupby(['subj_nr', 'condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].median().reset_index()
+    
+    # Aggregate over dots (mean E.d. and SD E.d.)
+    agg_Ed = summary_df.groupby(['subj_nr', 'condition'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
+    agg_SD = summary_df.groupby(['subj_nr', 'condition'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].std().reset_index()
+    print('\nMean Euclidean distance:')
+    print(agg_Ed)
+    print('\nStandard deviation of Euclidean distances:')
+    print(agg_SD)
+    
+    # Plot euclidean distances per subject
+    plt.figure()
+    plt.title(f'Condition:{i.condition.iloc[0]}\nEuclidean distances per subject')
+    plt.scatter(np.ones(agg_Ed.eucl_dist_cm_orig.size),agg_Ed.eucl_dist_cm_orig)
+    plt.scatter(1,agg_Ed.eucl_dist_cm_orig.mean())
+    
+    # Plot SD per subject
+    plt.figure()
+    plt.title(f'Condition:{i.condition.iloc[0]}\nSD of Euclidean distances per subject')
+    plt.scatter(np.ones(agg_SD.eucl_dist_cm_orig.size),agg_SD.eucl_dist_cm_orig)
+    plt.scatter(1,agg_SD.eucl_dist_cm_orig.mean())
 
-
-# Save plot
-# plt.savefig('calibration13.jpg', dpi=100, pad_inches=0)
-
-summary_df = df.groupby(['subj_nr', 'condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].median().reset_index()
-
-summary_df.groupby(['condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
-summary_df.groupby(['condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
