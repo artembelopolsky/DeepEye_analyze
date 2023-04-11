@@ -107,7 +107,10 @@ for fn in folder_names:
         if i < len(idx_dup) - 1:
             a = df.iloc[idx_dup[i]+1:idx_dup[i+1]]
             a = a.apply(pd.to_numeric, errors='ignore') # when header is written twice, some floats are str, fix this 
-            a['dataset_num'] = count_datasets          
+            a['dataset_num'] = count_datasets
+            a['eucl_dist_px_orig'] = np_euclidean_distance(np.array(a[['x','y']]), np.array(a[['user_pred_px_x','user_pred_px_y']]))
+            scale_cm_in_px = a.scrW_cm/a.resX
+            a['eucl_dist_cm_orig'] = a.eucl_dist_px_orig * scale_cm_in_px
        
            
             
@@ -157,7 +160,10 @@ target_resX = 1280.0
 target_resY = 800.0    
 
 # To do: 
+# Plot separately 9, 13, 25_9, 25_13
+# Print summary statistics per participant
 # How many attempts
+# Filter out failed last attemtps
 
 
 # d = c[c.numCalibDots == 9]
@@ -262,26 +268,7 @@ for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(dist_cm, 1)):
 # Save plot
 # plt.savefig('calibration13.jpg', dpi=100, pad_inches=0)
 
+summary_df = df.groupby(['subj_nr', 'condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].median().reset_index()
 
-
-
-###### Read log file
-
-# path = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/2023_03_20_09_25_13/2023_03_20_09_25_13_log.csv'
-        
-# df = pd.read_csv(path)
-
-# idx_dup = df.index[df['Unnamed: 0'] == 0].tolist()
-# idx_dup.extend([df.shape[0]])
-
-# df_list = []
-# for i in range(len(idx_dup)):
-#     if i < len(idx_dup) - 1:
-#         a = df.iloc[idx_dup[i]:idx_dup[i+1]]
-#         a['num_calibration_dots'] = a.shape[0]
-#         a = a.apply(pd.to_numeric, errors='ignore') # when header is written twice, some floats are str, fix this        
-#         df_list.append(a)        
-
-
-# # if there are more than 4 datasets, I should remove the recalibrated ones
-# b = pd.concat(df_list)
+summary_df.groupby(['condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
+summary_df.groupby(['condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
