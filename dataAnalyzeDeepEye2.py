@@ -81,8 +81,8 @@ def dot_error(y_true, y_pred):
     return float(mean_dot_error), df, float(std_dot_error)
 
 
-# path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
-path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+# path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
 
 # get all folder names
 folder_names = os.listdir(path_to_folders)
@@ -161,7 +161,7 @@ target_resY = 800.0
 
 df_all = df_all.reset_index()
 
-# df_all = df_all[df_all.subj_nr == '2023_04_12_12_14_51']
+# df_all = df_all[df_all.subj_nr == '2023_04_12_21_07_32']
 # df_all = df_all[df_all.numCalibDots == 9]
 df_all = df_all[df_all.subj_nr != '2023_04_07_13_59_57']
 df_all = df_all[df_all.subj_nr != '2023_04_07_13_45_47']
@@ -257,13 +257,13 @@ for name, i in df_all.groupby('condition'):
     
     # Plot euclidean distances per subject
     ax[0, count_plots].title.set_text(f'Condition:{i.condition.iloc[0]}\nEuclidean distances')
-    ax[0, count_plots].set_ylim(0,3)
+    ax[0, count_plots].set_ylim(0,3.5)
     ax[0, count_plots].scatter(np.ones(agg_Ed.eucl_dist_cm_orig.size),agg_Ed.eucl_dist_cm_orig)
     ax[0, count_plots].scatter(1,agg_Ed.eucl_dist_cm_orig.mean())
     
     # Plot SD per subject
     ax[1, count_plots].title.set_text(f'Condition:{i.condition.iloc[0]}\nSDs')
-    ax[1, count_plots].set_ylim(0,3)
+    ax[1, count_plots].set_ylim(0,3.5)
     ax[1, count_plots].scatter(np.ones(agg_SD.eucl_dist_cm_orig.size),agg_SD.eucl_dist_cm_orig)
     ax[1, count_plots].scatter(1,agg_SD.eucl_dist_cm_orig.mean())
     
