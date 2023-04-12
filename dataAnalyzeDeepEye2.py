@@ -81,8 +81,8 @@ def dot_error(y_true, y_pred):
     return float(mean_dot_error), df, float(std_dot_error)
 
 
-path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
-# path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+# path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
 
 # get all folder names
 folder_names = os.listdir(path_to_folders)
@@ -161,9 +161,11 @@ target_resY = 800.0
 
 df_all = df_all.reset_index()
 
+# df_all = df_all[df_all.subj_nr == '2023_04_12_12_14_51']
 # df_all = df_all[df_all.numCalibDots == 9]
-# df_all = df_all[df_all.subj_nr == '2023_04_07_13_59_57']
-# df_all = df_all[df_all.subj_nr == '2023_04_07_13_45_47']
+df_all = df_all[df_all.subj_nr != '2023_04_07_13_59_57']
+df_all = df_all[df_all.subj_nr != '2023_04_07_13_45_47']
+
 
 # user_predictions_px = np.array(df_all[['user_pred_px_x', 'user_pred_px_y']])
 df_all['user_pred_px_x_scaled'] = df_all.user_pred_px_x/df_all.resX * target_resX
