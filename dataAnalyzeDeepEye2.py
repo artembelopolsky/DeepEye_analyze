@@ -81,8 +81,8 @@ def dot_error(y_true, y_pred):
     return float(mean_dot_error), df, float(std_dot_error)
 
 
-path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
-# path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+# path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
 
 # get all folder names
 folder_names = os.listdir(path_to_folders)
@@ -92,6 +92,7 @@ for fn in folder_names:
     path = os.path.join(path_to_folders, fn, fn+'_test_all.csv')       
         
     df = pd.read_csv(path)
+        
     
     # Find the headers via duplicates and use it to split into datasets
     # Make indices of datasets
@@ -111,7 +112,12 @@ for fn in folder_names:
             a['dataset_num'] = count_datasets
             a['eucl_dist_px_orig'] = np_euclidean_distance(np.array(a[['x','y']]), np.array(a[['user_pred_px_x','user_pred_px_y']]))
             scale_cm_in_px = a.scrW_cm/a.resX
-            a['eucl_dist_cm_orig'] = a.eucl_dist_px_orig * scale_cm_in_px      
+            a['eucl_dist_cm_orig'] = a.eucl_dist_px_orig * scale_cm_in_px 
+            
+            if pd.api.types.is_string_dtype(a.sona_pp_id) == True:
+                a['platform'] = 'PROLIFIC'
+            else:
+                a['platform'] = 'SONA'
            
             # Label 25-dot conditions based on preceeding dataset
             if a.numCalibDots.iloc[0] == 25:
@@ -135,7 +141,7 @@ for fn in folder_names:
     last_numCalibDots = pd.Series(last_numCalibDots)
     idx_good_datasets = last_numCalibDots.loc[last_numCalibDots.shift(-1) != last_numCalibDots] # shift dataset by one row and get indices
     df_list = [df_list[i] for i in list(idx_good_datasets.index)] # pick only the 4 datasets
-    assert(len(df_list) <= 4)
+    assert(len(df_list) == 4)
     
     # Concatenate all datasets per subject
     b = pd.concat(df_list)
@@ -158,18 +164,19 @@ target_resY = 800.0
 # To do:
 # How many attempts
 # Filter out failed last attemtps
+# How to deal with missing data for some dots (e.g. for '2023_04_13_13_53_28')
 
 df_all = df_all.reset_index()
 
 
 # Select subset
-# df_all = df_all[df_all.subj_nr == '2023_04_12_23_30_03']
 # df_all = df_all[df_all.numCalibDots == 9]
+# df_all = df_all[df_all.subj_nr == '2023_04_13_13_53_28']
 
 # Exclude subjects
-df_all = df_all[df_all.subj_nr != '2023_04_07_13_59_57']
-df_all = df_all[df_all.subj_nr != '2023_04_07_13_45_47']
-df_all = df_all[df_all.subj_nr != '2023_04_12_22_07_27']
+df_all = df_all[df_all.subj_nr != '2023_04_07_13_59_57'] # my pilot data
+df_all = df_all[df_all.subj_nr != '2023_04_07_13_45_47'] # my pilot data
+
 
 
 # user_predictions_px = np.array(df_all[['user_pred_px_x', 'user_pred_px_y']])
@@ -281,3 +288,6 @@ fig.tight_layout()
 fig.suptitle(f'N={df.subj_nr.unique().size}', fontsize=16)
 fig.savefig('summary.jpg', dpi=1000)
 
+# Summary of platform used
+# x = df_all[df_all.subj_nr.unique()]
+# df_all.groupby('platform')['subj_nr', 'sona_pp_id'].count()
