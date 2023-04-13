@@ -135,7 +135,7 @@ for fn in folder_names:
     last_numCalibDots = pd.Series(last_numCalibDots)
     idx_good_datasets = last_numCalibDots.loc[last_numCalibDots.shift(-1) != last_numCalibDots] # shift dataset by one row and get indices
     df_list = [df_list[i] for i in list(idx_good_datasets.index)] # pick only the 4 datasets
-    assert(len(df_list) == 4)
+    assert(len(df_list) <= 4)
     
     # Concatenate all datasets per subject
     b = pd.concat(df_list)
@@ -161,10 +161,15 @@ target_resY = 800.0
 
 df_all = df_all.reset_index()
 
-# df_all = df_all[df_all.subj_nr == '2023_04_12_21_07_32']
+
+# Select subset
+# df_all = df_all[df_all.subj_nr == '2023_04_12_23_30_03']
 # df_all = df_all[df_all.numCalibDots == 9]
+
+# Exclude subjects
 df_all = df_all[df_all.subj_nr != '2023_04_07_13_59_57']
 df_all = df_all[df_all.subj_nr != '2023_04_07_13_45_47']
+df_all = df_all[df_all.subj_nr != '2023_04_12_22_07_27']
 
 
 # user_predictions_px = np.array(df_all[['user_pred_px_x', 'user_pred_px_y']])
@@ -200,7 +205,7 @@ for name, df in df_all.groupby('condition'):
                 
     ax.imshow(heatmap, cmap=cm.hot, extent=[0, target_resX, target_resY, 0], alpha = 0.5, aspect='equal')                   
     
-    plt.scatter(df.user_pred_px_x_scaled, df.user_pred_px_y_scaled, c='r', s=10, alpha=0.5)
+    # plt.scatter(df.user_pred_px_x_scaled, df.user_pred_px_y_scaled, c='r', s=10, alpha=0.5)
     plt.scatter(df.x_scaled, df.y_scaled, c='g', s=40, alpha=0.5)
                 
     # plt.axis('off')            
@@ -273,5 +278,6 @@ for name, i in df_all.groupby('condition'):
     
 # Save plot
 fig.tight_layout()
-# fig.savefig('summary.jpg', dpi=1000)
+fig.suptitle(f'N={df.subj_nr.unique().size}', fontsize=16)
+fig.savefig('summary.jpg', dpi=1000)
 
