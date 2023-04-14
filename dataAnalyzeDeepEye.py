@@ -81,13 +81,13 @@ def dot_error(y_true, y_pred):
     return float(mean_dot_error), df, float(std_dot_error)
 
 
-<<<<<<< Updated upstream
+
 # path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
-path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
-=======
+# path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
+
 path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/lab_pilot'
 # path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
->>>>>>> Stashed changes
+
 
 folder_names = os.listdir(path_to_folders)
 

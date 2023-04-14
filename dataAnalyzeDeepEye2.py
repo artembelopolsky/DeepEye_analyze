@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import os
 import astropy.convolution as krn
+import scipy.stats as stats
 
 def makeHeat(screenRes, xPos, yPos):
         xMax = screenRes[0]
@@ -81,8 +82,8 @@ def dot_error(y_true, y_pred):
     return float(mean_dot_error), df, float(std_dot_error)
 
 
-# path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
-path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+# path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
 
 # get all folder names
 folder_names = os.listdir(path_to_folders)
@@ -171,20 +172,18 @@ df_all = df_all.reset_index()
 
 # Select subset
 # df_all = df_all[df_all.numCalibDots == 9]
-# df_all = df_all[df_all.subj_nr == '2023_04_13_13_53_28']
-
+# df_all = df_all[(df_all.subj_nr == '2023_04_12_11_19_28')]
 # Exclude subjects
 df_all = df_all[df_all.subj_nr != '2023_04_07_13_59_57'] # my pilot data
 df_all = df_all[df_all.subj_nr != '2023_04_07_13_45_47'] # my pilot data
-
 
 
 # user_predictions_px = np.array(df_all[['user_pred_px_x', 'user_pred_px_y']])
 df_all['user_pred_px_x_scaled'] = df_all.user_pred_px_x/df_all.resX * target_resX
 df_all['user_pred_px_y_scaled'] = df_all.user_pred_px_y/df_all.resY * target_resY
 # ground_truths_px = np.array(df_all[['x','y']])
-df_all['x_scaled'] = df_all.x/df_all.resX * target_resX
-df_all['y_scaled'] = df_all.y/df_all.resY * target_resY
+df_all['x_scaled'] = np.round(df_all.x/df_all.resX * target_resX)
+df_all['y_scaled'] = np.round(df_all.y/df_all.resY * target_resY)
 
 df_all['scale_cm_in_px'] = df_all.scrW_cm.astype(float)/df_all.resX.astype(float)
 scale_cm_in_px = df_all.scale_cm_in_px.mean() # average scaling factor
@@ -215,7 +214,7 @@ for name, df in df_all.groupby('condition'):
     # plt.scatter(df.user_pred_px_x_scaled, df.user_pred_px_y_scaled, c='r', s=10, alpha=0.5)
     plt.scatter(df.x_scaled, df.y_scaled, c='g', s=40, alpha=0.5)
                 
-    # plt.axis('off')            
+    # plt.axis('off')  
     
     median_pred_x = df.groupby('unique_dot').user_pred_px_x_scaled.median()
     median_pred_y = df.groupby('unique_dot').user_pred_px_y_scaled.median()
@@ -288,6 +287,15 @@ fig.tight_layout()
 fig.suptitle(f'N={df.subj_nr.unique().size}', fontsize=16)
 fig.savefig('summary.jpg', dpi=1000)
 
-# Summary of platform used
-# x = df_all[df_all.subj_nr.unique()]
-# df_all.groupby('platform')['subj_nr', 'sona_pp_id'].count()
+# T-tests
+x = df_all.groupby(['subj_nr','condition']).eucl_dist_cm_orig.mean()
+x = x.unstack()
+print('T-Test: 13 vs. 9')
+print(stats.ttest_rel(np.array(x['13']), np.array(x['9'])))
+print('T-Test: 25_13 vs. 25_9:')
+print(stats.ttest_rel(np.array(x['25_13']), np.array(x['25_9'])))
+print(x.mean())
+
+# Subject descriptive statistics
+descr_stats = df_all.groupby(['platform', 'subj_nr', 'sona_pp_id'])['unique_dot'].count().reset_index()
+print(f'Descriptive Stats:\n {descr_stats}')
