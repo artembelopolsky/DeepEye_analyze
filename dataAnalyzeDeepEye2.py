@@ -171,8 +171,12 @@ df_all = df_all.reset_index()
 
 
 # Select subset
+"""
+
+'2023_04_15_11_42_39' - amazing performance, but did not do 25_9
+"""
 # df_all = df_all[df_all.numCalibDots == 9]
-# df_all = df_all[(df_all.subj_nr == '2023_04_12_11_19_28')]
+# df_all = df_all[(df_all.subj_nr == '2023_04_15_12_22_19')]
 # Exclude subjects
 df_all = df_all[df_all.subj_nr != '2023_04_07_13_59_57'] # my pilot data
 df_all = df_all[df_all.subj_nr != '2023_04_07_13_45_47'] # my pilot data
@@ -199,6 +203,12 @@ df_all['unique_dot'] = indices
 Plotting
 
 """
+fig2, ax2 = plt.subplots(nrows=2, ncols=2)
+fig2.set_size_inches((8.5, 7.0), forward=False)
+fig2.tight_layout()
+cell = [[0,0],[0,1],[1,0], [1,1]] 
+
+count_plots2 = 0
 
 # Iterate per condition
 for name, df in df_all.groupby('condition'):
@@ -206,13 +216,13 @@ for name, df in df_all.groupby('condition'):
 
     heatmap = makeHeat([target_resX, target_resY], np.array(df.user_pred_px_x_scaled), np.array(df.user_pred_px_y_scaled))
     
-    f, ax = plt.subplots()
-    f.set_size_inches(target_resX/100., target_resY/100.)            
+    # f, ax = plt.subplots()
+    # f.set_size_inches(target_resX/100., target_resY/100.)            
                 
-    ax.imshow(heatmap, cmap=cm.hot, extent=[0, target_resX, target_resY, 0], alpha = 0.5, aspect='equal')                   
+    # ax.imshow(heatmap, cmap=cm.hot, extent=[0, target_resX, target_resY, 0], alpha = 0.5, aspect='equal')                   
     
     # plt.scatter(df.user_pred_px_x_scaled, df.user_pred_px_y_scaled, c='r', s=10, alpha=0.5)
-    plt.scatter(df.x_scaled, df.y_scaled, c='g', s=40, alpha=0.5)
+    # plt.scatter(df.x_scaled, df.y_scaled, c='g', s=40, alpha=0.5)
                 
     # plt.axis('off')  
     
@@ -225,8 +235,8 @@ for name, df in df_all.groupby('condition'):
     
     
     # Plot median errors, lines
-    plt.scatter(median_pred_x, median_pred_y, c='b', s=40)
-    plt.plot([median_pred_x, true_x], [median_pred_y, true_y], c='black')
+    # plt.scatter(median_pred_x, median_pred_y, c='b', s=40)
+    # plt.plot([median_pred_x, true_x], [median_pred_y, true_y], c='black')
     
     
     # calculate the distance between median of all samples (as plotted)
@@ -234,23 +244,45 @@ for name, df in df_all.groupby('condition'):
     dist_cm = dist *  scale_cm_in_px
     std_pred_x_cm = std_pred_x * scale_cm_in_px
     std_pred_y_cm = std_pred_y * scale_cm_in_px
-    plt.title(f'Condition:{df.condition.iloc[0]}\n Mean error: {np.round(dist_cm.mean(),1)}cm, Std (x,y): ({np.round(std_pred_x_cm.mean(),1)}cm, {np.round(std_pred_y_cm.mean(),1)}cm)', fontsize=26)
+    # plt.title(f'Condition:{df.condition.iloc[0]}\n Mean error: {np.round(dist_cm.mean(),1)}cm, Std (x,y): ({np.round(std_pred_x_cm.mean(),1)}cm, {np.round(std_pred_y_cm.mean(),1)}cm)', fontsize=26)
     
     
-    for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(dist_cm, 1)):
-        plt.text(x, y, e, fontsize=18)
+    # for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(dist_cm, 1)):
+    #     plt.text(x, y, e, fontsize=18)
 
 
     # Save plot
     # plt.savefig(f'calibration{df.condition.iloc[0]}.jpg', dpi=100, pad_inches=0)
-
-
+    
+            
+    row = cell[count_plots2][0]
+    column = cell[count_plots2][1]
+    # Plot heatmap
+    ax2[row, column].imshow(heatmap, cmap=cm.hot, extent=[0, target_resX, target_resY, 0], alpha = 0.5, aspect='equal')  
+    # Plot true pos and predicted median errors, lines
+    ax2[row, column].scatter(df.x_scaled, df.y_scaled, c='g', s=40, alpha=0.5)
+    ax2[row, column].scatter(median_pred_x, median_pred_y, c='b', s=40)
+    ax2[row, column].plot([median_pred_x, true_x], [median_pred_y, true_y], c='black')
+    # Title
+    ax2[row, column].set_title(f'Condition:{df.condition.iloc[0]}\n Mean error: {np.round(dist_cm.mean(),1)}cm, Std (x,y): ({np.round(std_pred_x_cm.mean(),1)}cm, {np.round(std_pred_y_cm.mean(),1)}cm)')
+    # Error numbers
+    for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(dist_cm, 1)):
+        ax2[row, column].text(x, y, e, fontsize=18)
+    
+    count_plots2 += 1        
+  
+    
+ # Save plot
+fig2.suptitle(f'N={df.subj_nr.unique().size}', fontsize=16)
+fig2.subplots_adjust(top=0.9)
+fig2.savefig('calibration.jpg', dpi=1000, pad_inches=0)
 """
 Plotting mean E.d. and SD per condition
 """
 
 fig, ax = plt.subplots(nrows=2, ncols=4)
 fig.set_size_inches((8.5, 11), forward=False)
+
 count_plots = 0
 for name, i in df_all.groupby('condition'):
     
@@ -261,6 +293,10 @@ for name, i in df_all.groupby('condition'):
     # Aggregate over dots (mean E.d. and SD E.d.)
     agg_Ed = summary_df_ed.groupby(['subj_nr', 'condition'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
     agg_SD = summary_df_std.groupby(['subj_nr', 'condition'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
+    
+    # Get subj nr for the largest error
+    larg_err_subj = agg_Ed.where(agg_Ed.eucl_dist_cm_orig==agg_Ed.eucl_dist_cm_orig.max()).dropna().subj_nr
+    print(f'Maximum E.d. error is: {agg_Ed.eucl_dist_cm_orig.max(), larg_err_subj}')
     print('\nMean Euclidean distance:')
     print(agg_Ed)
     print('\nStandard deviation of Euclidean distances:')
@@ -268,23 +304,28 @@ for name, i in df_all.groupby('condition'):
     
     # Plot euclidean distances per subject
     ax[0, count_plots].title.set_text(f'Condition:{i.condition.iloc[0]}\nEuclidean distances')
-    ax[0, count_plots].set_ylim(0,3.5)
+    ax[0, count_plots].set_ylim(0,4.5)
     ax[0, count_plots].scatter(np.ones(agg_Ed.eucl_dist_cm_orig.size),agg_Ed.eucl_dist_cm_orig)
     ax[0, count_plots].scatter(1,agg_Ed.eucl_dist_cm_orig.mean())
     
     # Plot SD per subject
     ax[1, count_plots].title.set_text(f'Condition:{i.condition.iloc[0]}\nSDs')
-    ax[1, count_plots].set_ylim(0,3.5)
+    ax[1, count_plots].set_ylim(0,4.5)
     ax[1, count_plots].scatter(np.ones(agg_SD.eucl_dist_cm_orig.size),agg_SD.eucl_dist_cm_orig)
     ax[1, count_plots].scatter(1,agg_SD.eucl_dist_cm_orig.mean())
     
-    count_plots += 1
     
+    
+    
+    count_plots += 1
+
+
 
     
 # Save plot
 fig.tight_layout()
 fig.suptitle(f'N={df.subj_nr.unique().size}', fontsize=16)
+fig.subplots_adjust(top=0.9)
 fig.savefig('summary.jpg', dpi=1000)
 
 # T-tests
