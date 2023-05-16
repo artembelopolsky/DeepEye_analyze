@@ -340,3 +340,15 @@ print(x.mean())
 # Subject descriptive statistics
 descr_stats = df_all.groupby(['platform', 'subj_nr', 'sona_pp_id'])['unique_dot'].count().reset_index()
 print(f'Descriptive Stats:\n {descr_stats}')
+
+
+# Read the training file
+path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+# path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+
+# get all folder names
+folder_names = os.listdir(path_to_folders)
+
+path = os.path.join(path_to_folders, fn, fn+'_train_all.csv')       
+    
+df = pd.read_csv(path)
