@@ -85,8 +85,8 @@ def dot_error(y_true, y_pred):
 # path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
 # path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
 
-path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/lab_pilot'
-# path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1'
+# path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/lab_pilot'
+path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/lab_pilot'
 
 
 folder_names = os.listdir(path_to_folders)
@@ -107,12 +107,26 @@ for fn in folder_names:
     
     df_list = []
     count_datasets = 0
+    last_numCalibDots = []
     for i in range(len(idx_dup)):
         if i < len(idx_dup) - 1:
             a = df.iloc[idx_dup[i]+1:idx_dup[i+1]]
             a = a.apply(pd.to_numeric, errors='ignore') # when header is written twice, some floats are str, fix this 
-            a['num_calibration_dots'] = a.unique_dot.max() + 1
+            a['numCalibDots'] = a.unique_dot.max() + 1
             a['dataset_num'] = count_datasets
+            
+            # Label 25-dot conditions based on preceeding dataset
+            if a.numCalibDots.iloc[0] >= 20 :
+                print(f'last: {last_numCalibDots[-1]}')
+                if last_numCalibDots[-1] == 9:
+                    a['condition'] = '25_9'
+                elif last_numCalibDots[-1] == 13:
+                    a['condition'] = '25_13'
+                
+            else:
+                a['condition'] = a.numCalibDots.astype(str)
+                
+            last_numCalibDots.append(a.numCalibDots.iloc[-1]) # log last value 
                    
             df_list.append(a)
             count_datasets += 1
@@ -139,7 +153,8 @@ dist = np_euclidean_distance(y_true, y_pred)
 #     plt.gca().invert_yaxis()
     
     
-d = c[c.num_calibration_dots == 13]
+# d = c[c.numCalibDots == 25]
+d = c[c.condition == '9']
 d = d[d.subj_nr != '2023_03_13_13_27_40']
 d = d[d.subj_nr != '2023_03_27_11_43_30']
 
@@ -220,7 +235,7 @@ for x,y,e in zip(np.array(true_x), np.array(true_y), np.round(dist_cm, 1)):
 
 
 # Save plot
-# plt.savefig('calibration13.jpg', dpi=100, pad_inches=0)
+plt.savefig('calibration9_lab_pilot.jpg', dpi=100, pad_inches=0)
 
 
 
