@@ -82,7 +82,7 @@ def dot_error(y_true, y_pred):
     return float(mean_dot_error), df, float(std_dot_error)
 
 
-path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online/complete'
 # path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
 
 # get all folder names
@@ -276,6 +276,8 @@ for name, df in df_all.groupby('condition'):
 fig2.suptitle(f'N={df.subj_nr.unique().size}', fontsize=16)
 fig2.subplots_adjust(top=0.9)
 fig2.savefig('calibration.jpg', dpi=1000, pad_inches=0)
+
+
 """
 Plotting mean E.d. and SD per condition
 """
@@ -284,12 +286,39 @@ fig, ax = plt.subplots(nrows=2, ncols=4)
 fig.set_size_inches((8.5, 11), forward=False)
 
 count_plots = 0
+temp_df = []
 for name, i in df_all.groupby('condition'):
     
     # Get median per each unique dot, separately per subject and condition
     summary_df_ed = i.groupby(['subj_nr', 'condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].median().reset_index()
     summary_df_std = i.groupby(['subj_nr', 'condition', 'unique_dot'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].std().reset_index()
     
+    
+    for _, j in i.groupby(['subj_nr', 'condition', 'unique_dot']):
+        j['median_pred_x'] = j.user_pred_px_x_scaled.median()
+        j['median_pred_y'] = j.user_pred_px_y_scaled.median()
+        
+        j['euclidean_distance_px'] = np_euclidean_distance(np.array([j.user_pred_px_x_scaled, j.user_pred_px_y_scaled]).T, 
+                              np.array([j.median_pred_x, j.median_pred_y]).T)
+        
+        j['euclidean_distance_cm'] = j.euclidean_distance_px * scale_cm_in_px
+        
+        temp_df.append(j)
+        
+        
+        
+        
+        
+    
+    summary_df = i.groupby(['subj_nr', 'condition', 'unique_dot'])[['user_pred_px_x_scaled', 'user_pred_px_y_scaled', 'x_scaled', 'y_scaled']].median().reset_index()
+       
+    summary_df['euclidean_distance_px'] = np_euclidean_distance(np.array([summary_df.user_pred_px_x_scaled, summary_df.user_pred_px_y_scaled]).T, 
+                          np.array([summary_df.x_scaled, summary_df.y_scaled]).T)
+    summary_df['euclidean_distance_cm'] = summary_df.euclidean_distance_px * scale_cm_in_px
+    
+    agg = summary_df.groupby(['subj_nr', 'condition'])[['euclidean_distance_cm']].mean().reset_index()
+      
+        
     # Aggregate over dots (mean E.d. and SD E.d.)
     agg_Ed = summary_df_ed.groupby(['subj_nr', 'condition'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
     agg_SD = summary_df_std.groupby(['subj_nr', 'condition'])[['eucl_dist_px_orig', 'eucl_dist_cm_orig']].mean().reset_index()
@@ -343,7 +372,7 @@ print(f'Descriptive Stats:\n {descr_stats}')
 
 
 # Read the training file
-path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
+path_to_folders = 'C:/Users/artem/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online/complete'
 # path_to_folders = 'D:/Dropbox/Appliedwork/CognitiveSolutions/Projects/DeepEye/TechnicalReports/TechnicalReport1/online'
 
 # get all folder names
