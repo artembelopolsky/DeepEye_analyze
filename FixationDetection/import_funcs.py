@@ -102,6 +102,13 @@ def importTobiiTX300(fname, nskip=1, res=[1920,1080], missingx=-1920, missingy=-
 # =============================================================================
 def importDeepEye(fName, missingXY = 9999):
     data = pd.read_csv(fName)
+    
+    # Sort data in time
+    data =  data.sort_values('frameNr')
+    data = data.reset_index(drop=True)
+    data = data.drop_duplicates(subset=['user_pred_px_x', 'user_pred_px_y'], ignore_index=True)
+
+    
     # Extract meta information
     resX = data.resX[0]
     resY = data.resY[0]
