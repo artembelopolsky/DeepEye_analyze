@@ -33,6 +33,11 @@ def runI2MC(fName, plotData = False):
     # Load file to extract meta info
     origData = pd.read_csv(fName)
     
+    # Remove missing values and make sure data is not string
+    origData = origData[origData.fName.notna()]
+    origData = origData[origData.frameNr.notna()]
+    origData = origData.apply(pd.to_numeric, errors='ignore')
+    
     opt = {}
     # General variables for eye-tracking data
     opt['xres'] = origData.resX[0] # maximum value of horizontal resolution in pixels
