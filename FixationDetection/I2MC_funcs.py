@@ -998,6 +998,7 @@ def getFixations(finalweights, timestamp, xpos, ypos, missing, par):
             fixend[p] = i
 
     ### get start time, end time,
+    timestamp = timestamp.astype(float)
     starttime = timestamp[fixstart]
     endtime = timestamp[fixend]
     
@@ -1015,7 +1016,7 @@ def getFixations(finalweights, timestamp, xpos, ypos, missing, par):
         # notes about fixation duration below), i checked this carefully. (Both
         # start and end of the interval are shifted by one sample in time, but
         # assuming practicalyl constant sample interval, thats not an issue.)
-        if float(starttime[p])- float(endtime[p-1]) < maxMergeTime and \
+        if starttime[p]- endtime[p-1] < maxMergeTime and \
             np.hypot(xmedThis-xmedPrev,ymedThis-ymedPrev) < maxMergeDist:
             # merge
             fixend[p-1] = fixend[p];
