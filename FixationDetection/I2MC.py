@@ -58,6 +58,9 @@ def runI2MC(fName, plotData = False):
     opt['scrSz'] = [50.9174, 28.6411] # screen size in cm
     opt['disttoscreen'] = 65.0 # distance to screen in cm.
     
+    
+    
+    
     # =============================================================================
     # OPTIONAL VARIABLES
     # =============================================================================

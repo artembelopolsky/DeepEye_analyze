@@ -103,6 +103,13 @@ def importTobiiTX300(fname, nskip=1, res=[1920,1080], missingx=-1920, missingy=-
 def importDeepEye(fName, missingXY = 9999):
     data = pd.read_csv(fName)
     
+    
+    # Remove missing values and make sure data is not string
+    data = data[data.fName.notna()]
+    data.frameNr = data.frameNr.apply(pd.to_numeric, errors='coerce') # if framerNr is not a number, it is replaces with nan
+    data = data[data.frameNr.notna()] # filter out rows where frameNr is a nan
+    data = data.apply(pd.to_numeric, errors='ignore')
+    
     # Sort data in time
     data =  data.sort_values('frameNr')
     data = data.reset_index(drop=True)
