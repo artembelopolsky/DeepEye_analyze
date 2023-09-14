@@ -36,7 +36,8 @@ def runI2MC(fName, plotData = False):
     # Remove missing values and make sure data is not string
     origData = origData[origData.fName.notna()]
     origData.frameNr = origData.frameNr.apply(pd.to_numeric, errors='coerce') # if framerNr is not a number, it is replaces with nan
-    origData = origData[origData.frameNr.notna()] # filter out rows where frameNr is a nan
+    origData = origData[origData.frameNr.notna()] # filter out rows where frameNr is a nan    
+       
     origData = origData[origData.sampTime.notna()]
     origData = origData[origData.user_pred_px_x.notna()]
     origData = origData[origData.user_pred_px_y.notna()]
