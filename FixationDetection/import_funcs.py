@@ -101,7 +101,7 @@ def importTobiiTX300(fname, nskip=1, res=[1920,1080], missingx=-1920, missingy=-
 # Write your own func
 # =============================================================================
 def importDeepEye(fName, missingXY = 9999):
-    data = pd.read_csv(fName)
+    data = pd.read_csv(fName, on_bad_lines='skip')
     
     
     # Remove missing values and make sure data is not string

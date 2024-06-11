@@ -31,7 +31,7 @@ import pandas as pd
 def runI2MC(fName, plotData = False):
     start = time.time()
     # Load file to extract meta info
-    origData = pd.read_csv(fName)
+    origData = pd.read_csv(fName, on_bad_lines='skip')
     
     # Remove missing values and make sure data is not string
     origData = origData[origData.fName.notna()]
