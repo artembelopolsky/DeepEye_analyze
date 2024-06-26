@@ -109,7 +109,16 @@ def importDeepEye(fName, missingXY = 9999):
     data.frameNr = data.frameNr.apply(pd.to_numeric, errors='coerce') # if framerNr is not a number, it is replaces with nan
     data = data[data.frameNr.notna()] # filter out rows where frameNr is a nan     
     
+    data.sampTime = data.sampTime.apply(pd.to_numeric, errors='coerce') # if sampTime is not a number, it is replaces with nan
     data = data[data.sampTime.notna()]
+
+    data.resX = data.resX.apply(pd.to_numeric, errors='coerce') # if resX is not a number, it is replaces with nan
+    data = data[data.resX.notna()]
+    data.resY = data.resY.apply(pd.to_numeric, errors='coerce') # if resY is not a number, it is replaces with nan
+    data = data[data.resY.notna()]
+    
+    data.user_pred_px_x = data.user_pred_px_x.apply(pd.to_numeric, errors='coerce') # if user_pred_px_x is not a number, it is replaces with nan
+    data.user_pred_px_y = data.user_pred_px_y.apply(pd.to_numeric, errors='coerce') # if user_pred_px_y is not a number, it is replaces with nan
     data = data[data.user_pred_px_x.notna()]
     data = data[data.user_pred_px_y.notna()]
     data = data.apply(pd.to_numeric, errors='ignore')

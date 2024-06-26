@@ -30,15 +30,24 @@ import pandas as pd
 # =============================================================================
 def runI2MC(fName, plotData = False):
     start = time.time()
-    # Load file to extract meta info
+    # Load file to extract meta info, skip incomplete lines
     origData = pd.read_csv(fName, on_bad_lines='skip')
     
     # Remove missing values and make sure data is not string
     origData = origData[origData.fName.notna()]
     origData.frameNr = origData.frameNr.apply(pd.to_numeric, errors='coerce') # if framerNr is not a number, it is replaces with nan
     origData = origData[origData.frameNr.notna()] # filter out rows where frameNr is a nan    
-       
+
+    origData.sampTime = origData.sampTime.apply(pd.to_numeric, errors='coerce')
     origData = origData[origData.sampTime.notna()]
+
+    origData.resX = origData.resX.apply(pd.to_numeric, errors='coerce') # if resX is not a number, it is replaces with nan
+    origData = origData[origData.resX.notna()]
+    origData.resY = origData.resY.apply(pd.to_numeric, errors='coerce') # if resY is not a number, it is replaces with nan
+    origData = origData[origData.resY.notna()]
+
+    origData.user_pred_px_x = origData.user_pred_px_x.apply(pd.to_numeric, errors='coerce') # if user_pred_px_x is not a number, it is replaces with nan
+    origData.user_pred_px_y = origData.user_pred_px_y.apply(pd.to_numeric, errors='coerce') # if user_pred_px_y is not a number, it is replaces with nan
     origData = origData[origData.user_pred_px_x.notna()]
     origData = origData[origData.user_pred_px_y.notna()]
     origData = origData.apply(pd.to_numeric, errors='ignore')
@@ -51,7 +60,7 @@ def runI2MC(fName, plotData = False):
     opt['missingy'] = 9999 # missing value for vertical position in eye-tracking data (example data uses -yres). used throughout functions as signal for data loss
     # Get sample frequency, chooses the closests frequency from array of possible freqs
     freqs = np.arange(10,2002,2) # sets frequency to even number, to allow for easy downsampling
-    calcFreq = int(1000/np.median(np.diff(origData.sampTime.values))) # sampling frequency of data 
+    calcFreq = int(1000/np.median(np.diff(origData.sampTime.values.astype(float)))) # sampling frequency of data 
     opt['freq'] = freqs[np.abs(freqs-calcFreq).argmin()] # sampling frequency of data  closest to allowed frequencys 
     
     # Variables for the calculation of visual angle
