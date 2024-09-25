@@ -18,9 +18,8 @@ Created on Thu Sep 19 10:57:23 2019
 import os
 import sys
 import numpy as np
-import import_funcs as imp
-import I2MC_funcs
-import plot_funcs as plot
+from . import import_funcs # relative import
+from . import I2MC_funcs
 import matplotlib.pyplot as plt
 import time 
 import pandas as pd
@@ -113,7 +112,7 @@ def runI2MC(fName, plotData = False):
     ## IMPORT DATA
     print('\n\n\nImporting and processing: "{}"'.format(fName))
     data = {}
-    data['time'], data['average_X'], data['average_Y'] = imp.importDeepEye(fName)
+    data['time'], data['average_X'], data['average_Y'] = import_funcs.importDeepEye(fName)
     # RUN FIXATION DETECTION
     fix,_,_ = I2MC_funcs.I2MC(data,opt)
     

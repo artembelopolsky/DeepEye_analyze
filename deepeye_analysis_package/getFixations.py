@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from FixationDetection.I2MC import runI2MC
 
+
 def extract_fixations(df, path):
     """
     Extracts fixation information from eye-tracking data using the I2MC algorithm, merges the results
