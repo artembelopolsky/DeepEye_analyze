@@ -34,70 +34,79 @@ def extract_fixations(df, path):
         The preprocessed dataframe, filtered to include only rows where the target was presented.
     """
     
-    # Preprocess the input dataframe: Remove invalid or missing data
-    df = df[df.fName.notna()]  # Filter rows where fName is not NaN
-    df['frameNr'] = pd.to_numeric(df['frameNr'], errors='coerce')  # Convert frameNr to numeric, set non-numeric to NaN
-    df = df[df['frameNr'].notna()]  # Filter out rows where frameNr is NaN
-    
-    df['sampTime'] = pd.to_numeric(df['sampTime'], errors='coerce')  # Convert sampTime to numeric
-    df = df[df['sampTime'].notna()]  # Filter rows where sampTime is NaN
-    df = df[df['user_pred_px_x'].notna() & df['user_pred_px_y'].notna()]  # Filter rows with valid x and y coordinates
-    df = df.apply(pd.to_numeric, errors='ignore')  # Convert any possible strings to numbers
-    df = df.sort_values('frameNr').reset_index(drop=True)  # Sort by frame number
-    df = df.drop_duplicates(subset=['sampTime'], ignore_index=True)  # Drop duplicate sampTime entries
-    
-    # Run the I2MC fixation detection algorithm to extract fixation data
+    # Convert specific columns to numeric, coercing errors to NaN
+    columns_to_convert = ['frameNr', 'sampTime', 'user_pred_px_x', 'user_pred_px_y']
+    df[columns_to_convert] = df[columns_to_convert].apply(pd.to_numeric, errors='coerce')
+    df = df.dropna(subset=columns_to_convert)  # Drop rows where conversion failed
+
+    df = df[df.fName.notna()]  # Ensure 'fName' is not NaN
+    df = df.sort_values('frameNr').reset_index(drop=True)
+    df = df.drop_duplicates(subset=['sampTime'], ignore_index=True)  # Ensure 'sampTime' is unique
+
+    # Run the I2MC fixation detection algorithm
     fixDF = runI2MC(path, plotData=False)
+
+    # Ensure fixDF's relevant columns are numeric
+    fixDF_columns = ['FixStart', 'FixEnd', 'XPos', 'YPos', 'FixDur']
+    fixDF[fixDF_columns] = fixDF[fixDF_columns].apply(pd.to_numeric, errors='coerce')
+    fixDF = fixDF.dropna(subset=fixDF_columns)  # Drop rows where conversion failed
 
     # Initialize arrays for storing extracted fixation data
     FixXPos = np.zeros(df.shape[0])
     FixYPos = np.zeros(df.shape[0])
     FixStartEnd = np.empty(df.shape[0], dtype='U10')
-    FixStartEnd.fill('')  # Fill array with empty strings
+    FixStartEnd.fill('')
     FixDur = np.zeros(df.shape[0])
     DistFromPrevFix = np.zeros(df.shape[0])
     PrevFixXPos = np.zeros(df.shape[0])
     PrevFixYPos = np.zeros(df.shape[0])
     PrevFixSampTime = np.zeros(df.shape[0])
 
-    prev_fix_x = None  # Keep track of the previous fixation's x-coordinate
-    prev_fix_y = None  # Keep track of the previous fixation's y-coordinate
-    prev_fix_sampTime = 0  # Previous fixation's sample time
-    idx = 0  # Index for iterating through fixDF
+    prev_fix_x = None
+    prev_fix_y = None
+    prev_fix_sampTime = 0
+    idx = 0
 
     # Iterate through the dataframe to accumulate fixation information
     for index, row in df.iterrows():
         if idx >= fixDF.shape[0]:
-            break  # Stop if we run out of fixations to process
-        
+            break
+
+        # Ensure 'sampTime' and fixation times are numeric
+        sampTime = row['sampTime']
+        fixStart = fixDF['FixStart'].iloc[idx]
+        fixEnd = fixDF['FixEnd'].iloc[idx]
+
         # Move to the next fixation if the sample time exceeds the current fixation's end time
-        if row['sampTime'] > fixDF['FixEnd'].iloc[idx]:
+        if sampTime > fixEnd:
             idx += 1
             if idx >= fixDF.shape[0]:
                 break
-        
+            fixStart = fixDF['FixStart'].iloc[idx]
+            fixEnd = fixDF['FixEnd'].iloc[idx]
+
         # Check if the current sample time falls within a fixation
-        if fixDF['FixStart'].iloc[idx] <= row['sampTime'] <= fixDF['FixEnd'].iloc[idx]:
+        if fixStart <= sampTime <= fixEnd:
             FixXPos[index] = fixDF['XPos'].iloc[idx]
             FixYPos[index] = fixDF['YPos'].iloc[idx]
-        
+
         # Label fixation start and end
-        if row['sampTime'] == fixDF['FixStart'].iloc[idx]:
+        if sampTime == fixStart:
             FixStartEnd[index] = 'fix_start'
             if prev_fix_x is not None:
                 # Calculate the distance from the previous fixation
-                DistFromPrevFix[index] = np.sqrt((fixDF['XPos'].iloc[idx] - prev_fix_x) ** 2 + 
+                DistFromPrevFix[index] = np.sqrt((fixDF['XPos'].iloc[idx] - prev_fix_x) ** 2 +
                                                  (fixDF['YPos'].iloc[idx] - prev_fix_y) ** 2)
                 PrevFixXPos[index] = prev_fix_x
                 PrevFixYPos[index] = prev_fix_y
                 PrevFixSampTime[index] = prev_fix_sampTime
-        
-        elif row['sampTime'] == fixDF['FixEnd'].iloc[idx]:
+
+        elif sampTime == fixEnd:
             FixStartEnd[index] = 'fix_end'
             FixDur[index] = fixDF['FixDur'].iloc[idx]
             prev_fix_x = fixDF['XPos'].iloc[idx]
             prev_fix_y = fixDF['YPos'].iloc[idx]
-            prev_fix_sampTime = row['sampTime']
+            prev_fix_sampTime = sampTime
 
     # Add extracted fixation data to the original dataframe
     df['FixXPos'] = FixXPos
@@ -110,7 +119,7 @@ def extract_fixations(df, path):
     df['PrevFixYPos'] = PrevFixYPos
 
     # Filter out invalid fixations and coordinates
-    df = df[(df['FixXPos'] > 0) & (df['FixYPos'] > 0) & 
+    df = df[(df['FixXPos'] > 0) & (df['FixYPos'] > 0) &
             (df['user_pred_px_x'] > 0) & (df['user_pred_px_y'] > 0)]
 
     # Save the pre-processed dataframe to a CSV file
@@ -118,6 +127,7 @@ def extract_fixations(df, path):
     df.to_csv(output_file, index=False)
 
     return df
+
 
 
 def batch_extract_fixations(path_to_data):
