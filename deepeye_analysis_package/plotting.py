@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.image as mpimg
+import astropy.convolution as krn
 
 def draw_bbox(ax, bboxes_coords, colormap='viridis', offset_left=0, offset_top=0, padding=0):
     """
@@ -173,3 +174,106 @@ def plot2d(df, fn, path_to_analysis, condition=None, bboxes=True, stimuli=True, 
         if save:
             plt.savefig(os.path.join(path_to_analysis, f'{fn}_{title}_{int(trialNr)}'), dpi=300, pad_inches=0)
             plt.close()
+
+
+def makeHeat(screenRes, xPos, yPos):
+    """
+    Generate a heatmap based on gaze position data, using Gaussian convolution.
+
+    Parameters:
+    -----------
+    screenRes : tuple
+        A tuple (xMax, yMax) representing the resolution of the screen.
+    xPos : array-like
+        A list or numpy array of x-coordinates of gaze positions.
+    yPos : array-like
+        A list or numpy array of y-coordinates of gaze positions.
+
+    Returns:
+    --------
+    heatMap : numpy.ndarray
+        A 2D array representing the heatmap of gaze data with values scaled between 0 and 1.
+
+    Raises:
+    -------
+    ValueError:
+        If the input screen resolution is not a tuple of two integers.
+        If the length of xPos and yPos do not match.
+        If the inputs are not numeric arrays or lists.
+    """
+
+    try:
+        if not isinstance(screenRes, (tuple, list)) or len(screenRes) != 2:
+            raise ValueError("screenRes must be a tuple or list of two elements representing screen dimensions.")
+        
+        xMax, yMax = int(screenRes[0]), int(screenRes[1])
+        xMin, yMin = 0, 0
+        kernelPar = 50
+
+        # Input validation for xPos and yPos
+        if len(xPos) != len(yPos):
+            raise ValueError("xPos and yPos must have the same length.")
+        
+        if not isinstance(xPos, (list, np.ndarray)) or not isinstance(yPos, (list, np.ndarray)):
+            raise ValueError("xPos and yPos must be array-like structures (lists or numpy arrays).")
+
+        xPos = np.array(xPos)
+        yPos = np.array(yPos)
+
+        # Ensure gaze points are within the screen resolution
+        xlim = np.logical_and(xPos < xMax, xPos > xMin)
+        ylim = np.logical_and(yPos < yMax, yPos > yMin)
+        xyLim = np.logical_and(xlim, ylim)
+
+        dataX = np.floor(xPos[xyLim])  # Filter and round x coordinates
+        dataY = np.floor(yPos[xyLim])  # Filter and round y coordinates
+
+        # Initialize gaze map and Gaussian kernel
+        gazeMap = np.zeros([int((xMax - xMin)), int((yMax - yMin))]) + 0.0001
+        gausKernel = krn.Gaussian2DKernel(kernelPar)
+
+        # Rescale the position vectors (if xmin or ymin != 0)
+        dataX -= xMin
+        dataY -= yMin
+
+        # Extract unique positions and count occurrences
+        xy = np.vstack((dataX, dataY)).T
+        uniqueXY, idx, counts = uniqueRows(xy)
+        uniqueXY = uniqueXY.astype(int)
+
+        # Populate the gazeMap with counts
+        gazeMap[uniqueXY[:, 0], uniqueXY[:, 1]] = counts
+
+        # Convolve the gaze map with the Gaussian kernel
+        heatMap = np.transpose(krn.convolve_fft(gazeMap, gausKernel))
+        heatMap = heatMap / np.max(heatMap)  # Normalize heatmap to [0, 1]
+
+        return heatMap
+    
+    except Exception as e:
+        raise RuntimeError(f"An error occurred during heatmap generation: {str(e)}")
+
+
+def uniqueRows(x):
+    """
+    Identify unique rows in a 2D array and return them along with their indices and counts.
+
+    Parameters:
+    -----------
+    x : numpy.ndarray
+        A 2D array of coordinates.
+
+    Returns:
+    --------
+    uniques : numpy.ndarray
+        A 2D array of unique rows.
+    idx : numpy.ndarray
+        The indices of the unique rows in the original array.
+    counts : numpy.ndarray
+        The number of occurrences of each unique row.
+    """
+    y = np.ascontiguousarray(x).view(np.dtype((np.void, x.dtype.itemsize * x.shape[1])))
+    _, idx, counts = np.unique(y, return_index=True, return_counts=True)
+    uniques = x[idx]
+    return uniques, idx, counts
+
