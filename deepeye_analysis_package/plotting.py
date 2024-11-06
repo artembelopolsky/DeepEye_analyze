@@ -105,7 +105,7 @@ def draw_stimuli(ax, img_paths, img_coords, path_to_analysis):
     return 'done'
 
 
-def plot2d(df, fn, path_to_analysis, condition=None, bboxes=True, stimuli=True, save=True):
+def plot2d(df, fn, path_to_analysis=False, condition=None, bboxes=True, stimuli=True, save=True):
     """
     Plots 2D eye-tracking data for each trial, with optional bounding boxes and stimuli images.
 
