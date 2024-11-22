@@ -42,6 +42,7 @@ def extract_fixations(df, path):
     df = df[df.fName.notna()]  # Ensure 'fName' is not NaN
     df = df.sort_values('frameNr').reset_index(drop=True)
     df = df.drop_duplicates(subset=['sampTime'], ignore_index=True)  # Ensure 'sampTime' is unique
+    df = df.drop_duplicates(subset=['user_pred_px_x', 'user_pred_px_y'], ignore_index=True)  # Ensure unique coordinates (sometimes webcam is stuck)
 
     # Run the I2MC fixation detection algorithm
     fixDF = runI2MC(path, plotData=False)
