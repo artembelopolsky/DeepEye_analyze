@@ -117,8 +117,9 @@ def plot2d(df, fn, path_to_analysis=False, condition=None, bboxes=True, stimuli=
         The filename prefix for saving the plot.
     path_to_analysis : str
         The path to the directory where results will be saved.
-    condition : str, optional
-        The column name in df used for generating a title for each plot (default is None).
+    condition : str or list, optional
+        The column name(s) in df used for generating a title for each plot. 
+        Can be a single column name (str) or a list of column names (default is None).
     bboxes : bool, optional
         Whether to draw bounding boxes on the plot (default is True).
     stimuli : bool, optional
@@ -138,7 +139,14 @@ def plot2d(df, fn, path_to_analysis=False, condition=None, bboxes=True, stimuli=
 
         # Set the plot title based on the condition
         if condition:
-            title = group[condition].iloc[0]
+            # Handle both single column and multiple columns
+            if isinstance(condition, list):
+                # Join multiple column values with underscores
+                title_parts = [str(group[col].iloc[0]) for col in condition]
+                title = '_'.join(title_parts)
+            else:
+                # Single column
+                title = str(group[condition].iloc[0])
             plt.title(f'{fn}_{title}_trial{int(trialNr)}')
         else:
             title = f'trial_{int(trialNr)}'
