@@ -6,7 +6,46 @@ import matplotlib.patches as patches
 import matplotlib.image as mpimg
 import astropy.convolution as krn
 
-def draw_bbox(ax, bboxes_coords, colormap='viridis', offset_left=0, offset_top=0, padding=0):
+def _get_padding_for_box(padding, box_idx, bboxes_names=None):
+    """
+    Helper function to get horizontal and vertical padding for a specific bounding box.
+    
+    Parameters
+    ----------
+    padding : float, list, or dict
+        Padding specification
+    box_idx : int
+        Index of the current bounding box
+    bboxes_names : list, optional
+        Names of bounding boxes (used when padding is a dict)
+    
+    Returns
+    -------
+    tuple
+        (horizontal_padding, vertical_padding)
+    """
+    if isinstance(padding, (int, float)):
+        # Same padding on all sides
+        return float(padding), float(padding)
+    elif isinstance(padding, list) and len(padding) == 2:
+        # [horizontal, vertical] padding for all boxes
+        return float(padding[0]), float(padding[1])
+    elif isinstance(padding, dict) and bboxes_names:
+        # Specific padding per box name
+        box_name = bboxes_names[box_idx] if box_idx < len(bboxes_names) else f'box_{box_idx}'
+        if box_name in padding:
+            pad_spec = padding[box_name]
+            if isinstance(pad_spec, (int, float)):
+                return float(pad_spec), float(pad_spec)
+            elif isinstance(pad_spec, list) and len(pad_spec) == 2:
+                return float(pad_spec[0]), float(pad_spec[1])
+        # Default to 0 if box name not found
+        return 0.0, 0.0
+    else:
+        # Default to 0 padding
+        return 0.0, 0.0
+
+def draw_bbox(ax, bboxes_coords, colormap='viridis', offset_left=0, offset_top=0, padding=0, bboxes_names=None):
     """
     Draws bounding boxes on the given axes based on provided coordinates.
 
@@ -23,8 +62,13 @@ def draw_bbox(ax, bboxes_coords, colormap='viridis', offset_left=0, offset_top=0
         Horizontal offset for bounding boxes (default is 0).
     offset_top : float, optional
         Vertical offset for bounding boxes (default is 0).
-    padding : float, optional
-        Padding to add around each bounding box (default is 0).
+    padding : float, list, or dict, optional
+        Padding to add around each bounding box. Can be:
+        - float: Same padding on all sides for all boxes
+        - list: [h_pad, v_pad] for horizontal and vertical padding for all boxes
+        - dict: {'box_name': [h_pad, v_pad]} for specific padding per box (default is 0).
+    bboxes_names : list, optional
+        List of names for each bounding box, used when padding is a dict (default is None).
 
     Returns
     -------
@@ -50,9 +94,12 @@ def draw_bbox(ax, bboxes_coords, colormap='viridis', offset_left=0, offset_top=0
         bbox_width = float(bbox_coords[2])
         bbox_height = float(bbox_coords[3])
 
+        # Calculate padding for this specific box
+        h_pad, v_pad = _get_padding_for_box(padding, idx, bboxes_names)
+        
         # Draw a rectangle with padding
-        rect = patches.Rectangle((bbox_left - padding, bbox_top - padding), 
-                                 bbox_width + padding * 2, bbox_height + padding * 2, 
+        rect = patches.Rectangle((bbox_left - h_pad, bbox_top - v_pad), 
+                                 bbox_width + h_pad * 2, bbox_height + v_pad * 2, 
                                  fill=False, edgecolor=colors[idx], linewidth=2)
         ax.add_patch(rect)
 
@@ -105,7 +152,7 @@ def draw_stimuli(ax, img_paths, img_coords, path_to_analysis):
     return 'done'
 
 
-def plot2d(df, fn, path_to_analysis=False, condition=None, bboxes=True, stimuli=True, save=True):
+def plot2d(df, fn, path_to_analysis=False, condition=None, bboxes=True, stimuli=True, save=True, padding=None):
     """
     Plots 2D eye-tracking data for each trial, with optional bounding boxes and stimuli images.
 
@@ -126,6 +173,8 @@ def plot2d(df, fn, path_to_analysis=False, condition=None, bboxes=True, stimuli=
         Whether to draw stimuli images on the plot (default is True).
     save : bool, optional
         Whether to save the plot to a file (default is True).
+    padding : float, list, or dict, optional
+        Padding for bounding boxes. If None, uses padding from DataFrame (default is None).
 
     Returns
     -------
@@ -157,8 +206,17 @@ def plot2d(df, fn, path_to_analysis=False, condition=None, bboxes=True, stimuli=
 
         # Draw bounding boxes if enabled
         if bboxes:
-            padding = group.padding.iloc[0]  # Get padding from DataFrame
-            draw_bbox(ax, group.bboxes.iloc[0], colormap='viridis', padding=padding)
+            # Use padding parameter if provided, otherwise get from DataFrame
+            if padding is not None:
+                plot_padding = padding
+            else:
+                plot_padding = group.padding.iloc[0]  # Get padding from DataFrame
+                # Handle case where padding is NaN (when dictionary was assigned to DataFrame)
+                if pd.isna(plot_padding):
+                    plot_padding = 0  # Default to no padding
+            
+            bboxes_names = group.bboxesNames.iloc[0] if 'bboxesNames' in group.columns else None
+            draw_bbox(ax, group.bboxes.iloc[0], colormap='viridis', padding=plot_padding, bboxes_names=bboxes_names)
 
         # Plot raw eye samples
         raw_h = plt.scatter(group.user_pred_px_x, group.user_pred_px_y, c='orange', alpha=0.5, edgecolors='black')

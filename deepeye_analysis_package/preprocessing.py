@@ -6,6 +6,46 @@ import pandas as pd
 import ast  # For literal_eval
 
 
+def _get_padding_for_box_aoi(padding, box_idx, bboxes_names=None):
+    """
+    Helper function to get horizontal and vertical padding for a specific bounding box in AOI processing.
+    
+    Parameters
+    ----------
+    padding : float, list, or dict
+        Padding specification
+    box_idx : int
+        Index of the current bounding box
+    bboxes_names : list, optional
+        Names of bounding boxes (used when padding is a dict)
+    
+    Returns
+    -------
+    tuple
+        (horizontal_padding, vertical_padding)
+    """
+    if isinstance(padding, (int, float)):
+        # Same padding on all sides
+        return float(padding), float(padding)
+    elif isinstance(padding, list) and len(padding) == 2:
+        # [horizontal, vertical] padding for all boxes
+        return float(padding[0]), float(padding[1])
+    elif isinstance(padding, dict) and bboxes_names:
+        # Specific padding per box name
+        box_name = bboxes_names[box_idx] if box_idx < len(bboxes_names) else f'box_{box_idx}'
+        if box_name in padding:
+            pad_spec = padding[box_name]
+            if isinstance(pad_spec, (int, float)):
+                return float(pad_spec), float(pad_spec)
+            elif isinstance(pad_spec, list) and len(pad_spec) == 2:
+                return float(pad_spec[0]), float(pad_spec[1])
+        # Default to 0 if box name not found
+        return 0.0, 0.0
+    else:
+        # Default to 0 padding
+        return 0.0, 0.0
+
+
 def getFixationLatency(df):
     """
     Calculate fixation latency and fixation order for each trial in the provided dataframe.
@@ -172,7 +212,7 @@ def handle_carryover_fixations_and_merge(df, max_event_duration):
 
 
 
-def addAOI(df):
+def addAOI(df, padding=None):
     """
     Assign Areas of Interest (AOI) to each fixation based on predefined bounding boxes for stimuli.
 
@@ -189,7 +229,9 @@ def addAOI(df):
         - 'FixYPos': float, Y-coordinate of the fixation point.
         - 'bboxes': list of bounding boxes, where each box is defined as [x, y, width, height].
         - 'bboxesNames': list of names corresponding to each bounding box.
-        - 'padding': float, padding to apply around each bounding box.
+        - 'padding': float, padding to apply around each bounding box (used if padding parameter is None).
+    padding : float, list, or dict, optional
+        Padding for bounding boxes. If None, uses padding from DataFrame (default is None).
     
     Returns
     -------
@@ -247,7 +289,15 @@ def addAOI(df):
 
     # Iterate over each row in the DataFrame
     for _, row in df.iterrows():
-        padding = row.padding  # Get padding for the bounding boxes
+        # Use padding parameter if provided, otherwise get from DataFrame
+        if padding is not None:
+            row_padding = padding
+        else:
+            row_padding = row.padding  # Get padding for the bounding boxes
+            # Handle case where padding is NaN (when dictionary was assigned to DataFrame)
+            if pd.isna(row_padding):
+                row_padding = 0  # Default to no padding
+        
         bboxesNames = row.bboxesNames  # List of bounding box names
         bboxes_coords = row.bboxes  # Bounding box coordinates
 
@@ -263,11 +313,14 @@ def addAOI(df):
 
         # Initialize bounding boxes with padding
         bounding_boxes = []
-        for coord in bboxes_coords:
-            x1 = coord[0] - padding
-            y1 = coord[1] - padding
-            x2 = coord[0] + coord[2] + padding * 2
-            y2 = coord[1] + coord[3] + padding * 2
+        for idx, coord in enumerate(bboxes_coords):
+            # Get padding for this specific box
+            h_pad, v_pad = _get_padding_for_box_aoi(row_padding, idx, bboxesNames)
+            
+            x1 = coord[0] - h_pad
+            y1 = coord[1] - v_pad
+            x2 = coord[0] + coord[2] + h_pad * 2
+            y2 = coord[1] + coord[3] + v_pad * 2
             bounding_boxes.append(((x1, y1), (x2, y2)))
 
         # Get fixation coordinates
