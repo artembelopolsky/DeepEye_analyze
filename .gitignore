@@ -2,3 +2,5 @@
 *.pyc
 *.pyc
 deepeye_analyze/
+.venv/
+skinai_env/
